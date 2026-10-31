@@ -110,6 +110,7 @@ def handoff_to_human(args, session):
     call_state.handoff_reason = reason
     call_state.needs_followup = True
     record_in_call_state(session, category, f"Handed off: {reason}")
-    return (f"HANDOFF RECORDED. Tell the caller a team member will follow up shortly, confirm the best "
-            f"callback number if you don't have it, and mention the shop number {SHOP['phone']}. "
-            f"Do not try to resolve the issue yourself.")
+    return (f"HANDOFF RECORDED for staff review. This system does not automatically notify the team, "
+            f"so do not promise a response time. Confirm the best callback number if needed and give "
+            f"the caller the shop number {SHOP['phone']} for urgent follow-up. Do not try to resolve "
+            f"the issue yourself.")

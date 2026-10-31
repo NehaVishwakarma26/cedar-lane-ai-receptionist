@@ -21,4 +21,7 @@ class Session:
     session_id: str
     caller_phone: Optional[str] = None   # set by Vapi (voice); authoritative when present
     messages: list = field(default_factory=list)
+    # Keep Gemini's native content objects so function-call signatures/context
+    # are preserved when the model is called again after local tool execution.
+    model_contents: list = field(default_factory=list)
     state: CallState = field(default_factory=CallState)

@@ -25,7 +25,8 @@ GRANULARITY = int(SHOP["slot_granularity_min"])
 TZ = ZoneInfo(os.getenv("SHOP_TZ") or SHOP["timezone"])
 CALENDAR_ID = os.getenv("CALENDAR_ID", "primary")
 SHEET_ID = os.getenv("SHEET_ID", "")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
 
 def _validate():
