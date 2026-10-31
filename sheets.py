@@ -5,7 +5,7 @@ import utils
 
 CONTACT_HEADERS = [
     "phone", "name", "vehicle", "first_seen", "last_call",
-    "call_count", "last_category", "last_summary", "needs_followup"
+    "call_count", "last_category", "last_summary", "needs_followup", "session_id"
 ]
 
 LOG_HEADERS = [
@@ -57,41 +57,51 @@ def pad_row(row, length):
 
 
 def upsert_contact(
-    phone,
+    phone=None,
     name=None,
     vehicle=None,
     category=None,
     summary=None,
     needs_followup=None,
     now=None,
+    session_id=None,
 ):
-    """Create a contact or update the existing contact for this phone."""
+    """Create/update a contact by phone, or by session ID for an anonymous chat."""
 
-    phone = normalize_indian_phone(phone)
+    phone = normalize_indian_phone(phone) if phone else ""
+    if not phone and not session_id:
+        raise ValueError("A phone number or session ID is required to identify a contact.")
     now_text = (now or utils.now_local()).isoformat(timespec="seconds")
 
     # Read existing contacts
     values = get_values()
     rows = values.get(
         spreadsheetId=config.SHEET_ID,
-        range="Contacts!A2:I",
+        range="Contacts!A2:J",
     ).execute().get("values", [])
 
-    # Find the contact, even if an older row uses another Indian format
+    # Match a known phone first, accepting old phone formats. If a phone was
+    # supplied later in this same chat, fall back to its earlier session row.
     index = None
 
-    for i, row in enumerate(rows):
-        if row and row[0]:
-            try:
-                if normalize_indian_phone(row[0]) == phone:
-                    index = i
-                    break
-            except ValueError:
-                # Ignore old rows with invalid phone numbers
-                continue
+    if phone:
+        for i, row in enumerate(rows):
+            if row and row[0]:
+                try:
+                    if normalize_indian_phone(row[0]) == phone:
+                        index = i
+                        break
+                except ValueError:
+                    # Ignore old rows with invalid phone numbers
+                    continue
+
+    if index is None and session_id:
+        for i, row in enumerate(rows):
+            if len(row) > 9 and row[9] == session_id:
+                index = i
+                break
 
     if index is None:
-        # Create a new contact
         row = [
             phone,
             name or "",
@@ -102,11 +112,12 @@ def upsert_contact(
             category or "",
             summary or "",
             "TRUE" if needs_followup else "FALSE",
+            session_id or "",
         ]
 
-        values.append(
+        get_values().append(
             spreadsheetId=config.SHEET_ID,
-            range="Contacts!A:I",
+            range="Contacts!A:J",
             valueInputOption="RAW",
             insertDataOption="INSERT_ROWS",
             body={"values": [row]},
@@ -114,18 +125,19 @@ def upsert_contact(
 
         return "created"
 
-    # Update the existing contact
-    row = pad_row(rows[index], 9)
-
-    row[0] = phone
+    row = pad_row(rows[index], 10)
+    if phone:
+        row[0] = phone
     row[1] = name or row[1]
     row[2] = vehicle or row[2]
     row[4] = now_text
 
-    try:
-        row[5] = int(row[5] or 0) + 1
-    except (ValueError, TypeError):
-        row[5] = 1
+    same_session = bool(session_id and len(row) > 9 and row[9] == session_id)
+    if not same_session:
+        try:
+            row[5] = int(row[5] or 0) + 1
+        except (ValueError, TypeError):
+            row[5] = 1
 
     row[6] = category or row[6]
     row[7] = summary or row[7]
@@ -133,12 +145,13 @@ def upsert_contact(
     # Never accidentally clear an existing follow-up flag
     if needs_followup:
         row[8] = "TRUE"
+    if session_id:
+        row[9] = session_id
 
     sheet_row = index + 2
-
-    values.update(
+    get_values().update(
         spreadsheetId=config.SHEET_ID,
-        range=f"Contacts!A{sheet_row}:I{sheet_row}",
+        range=f"Contacts!A{sheet_row}:J{sheet_row}",
         valueInputOption="RAW",
         body={"values": [row]},
     ).execute()
@@ -157,7 +170,7 @@ def append_call_log(
     event_id="",
     handoff_reason="",
 ):
-    """Append one call record to the Call Log sheet."""
+    """Insert or refresh this session's one Call Log row (safe to retry)."""
 
     if phone:
         phone = normalize_indian_phone(phone)
@@ -174,10 +187,29 @@ def append_call_log(
         handoff_reason or "",
     ]
 
-    get_values().append(
+    values = get_values()
+    existing = values.get(
         spreadsheetId=config.SHEET_ID,
-        range="'Call Log'!A:I",
-        valueInputOption="RAW",
-        insertDataOption="INSERT_ROWS",
-        body={"values": [row]},
-    ).execute()
+        range="'Call Log'!A2:I",
+    ).execute().get("values", [])
+    existing_index = next(
+        (index for index, old_row in enumerate(existing) if len(old_row) > 1 and old_row[1] == session_id),
+        None,
+    )
+
+    if existing_index is None:
+        values.append(
+            spreadsheetId=config.SHEET_ID,
+            range="'Call Log'!A:I",
+            valueInputOption="RAW",
+            insertDataOption="INSERT_ROWS",
+            body={"values": [row]},
+        ).execute()
+    else:
+        sheet_row = existing_index + 2
+        values.update(
+            spreadsheetId=config.SHEET_ID,
+            range=f"'Call Log'!A{sheet_row}:I{sheet_row}",
+            valueInputOption="RAW",
+            body={"values": [row]},
+        ).execute()

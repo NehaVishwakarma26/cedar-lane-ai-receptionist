@@ -77,6 +77,10 @@ def _generate(session, system_prompt):
 
 def respond(session_id, text, caller_phone=None):
     s = get_session(session_id, caller_phone)
+    # A new chat turn should refresh the existing Sheets rows. Within a single
+    # save attempt, these flags prevent a successful write being repeated.
+    s.contact_saved = False
+    s.call_log_saved = False
     system_prompt = build_system_prompt(utils.now_local(), s.caller_phone)
     s.messages.append({"role": "user", "content": text})
     s.model_contents.append(types.Content(role="user", parts=[types.Part.from_text(text=text)]))
@@ -107,25 +111,45 @@ def respond(session_id, text, caller_phone=None):
     return FALLBACK
 
 
-def end_session(session_id):
-    """Log the call in CODE (don't rely on an 8B model to remember). Call on hangup/exit."""
-    s = SESSIONS.pop(session_id, None)
+def save_session(session_id):
+    """Save or refresh this session's contact and call-log rows in Sheets."""
+    s = SESSIONS.get(session_id)
     if s is None or not any(m["role"] == "user" for m in s.messages):
-        return
+        return True
     st = s.state
     phone = s.caller_phone or st.phone
     category = st.category or "other"
     outcome = st.outcome or ("resolved" if st.category else "abandoned")
     summary = "; ".join(st.summary_parts) or "No actions taken"
     now = utils.now_local()
-    if phone:
+    contact_ok = s.contact_saved
+    if not s.contact_saved:
         try:
-            sheets.upsert_contact(phone, st.name, st.vehicle, category, summary, st.needs_followup, now)
+            sheets.upsert_contact(
+                phone, st.name, st.vehicle, category, summary, st.needs_followup, now,
+                session_id=s.session_id,
+            )
+            s.contact_saved = True
+            contact_ok = True
         except Exception:
             log.exception("failed to upsert contact for call %s", session_id)
 
-    try:
-        sheets.append_call_log(now.isoformat(timespec="seconds"), s.session_id, phone, st.name, category,
-                               summary, outcome, st.event_id, st.handoff_reason)
-    except Exception:
-        log.exception("failed to append call log for call %s", session_id)
+    if not s.call_log_saved:
+        try:
+            sheets.append_call_log(now.isoformat(timespec="seconds"), s.session_id, phone, st.name, category,
+                                   summary, outcome, st.event_id, st.handoff_reason)
+            s.call_log_saved = True
+        except Exception:
+            log.exception("failed to append call log for call %s", session_id)
+
+    if contact_ok and s.call_log_saved:
+        return True
+    return False
+
+
+def end_session(session_id):
+    """Finalize a session after saving; retain it when Sheets needs a retry."""
+    if not save_session(session_id):
+        return False
+    SESSIONS.pop(session_id, None)
+    return True

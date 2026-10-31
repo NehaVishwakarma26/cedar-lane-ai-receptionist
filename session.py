@@ -25,3 +25,5 @@ class Session:
     # are preserved when the model is called again after local tool execution.
     model_contents: list = field(default_factory=list)
     state: CallState = field(default_factory=CallState)
+    contact_saved: bool = False
+    call_log_saved: bool = False

@@ -24,6 +24,13 @@ Open the local URL Streamlit prints (usually `http://localhost:8501`). The sideb
 Backend URL defaults to `http://127.0.0.1:8000`; change it if the API is running elsewhere.
 The UI stores display messages in the browser session and sends each new message with a
 stable session ID. The backend keeps the actual conversation state.
+After every chat reply, the backend saves or refreshes the contact and call-log rows. The
+session ID makes these writes idempotent, so the sheet has one call-log row per conversation
+and closing the browser tab does not discard the last successfully saved turn. If a Sheets
+write fails, the UI reports it and the next message retries the save. Clicking **Start a new
+conversation** also finalizes the session before discarding it.
+Contacts without a phone number are keyed by chat session ID. After this change, update the
+Contacts header in the configured spreadsheet by running `uv run python scripts/setup_sheets.py`.
 
 ## Before use
 
