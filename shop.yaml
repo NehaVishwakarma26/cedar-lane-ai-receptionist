@@ -1,7 +1,7 @@
 shop:
   name: Cedar Lane Auto Detailing
-  timezone: America/Los_Angeles
-  phone: "+14155550100"
+  timezone: Asia/Kolkata
+  phone: "+911234567890"
   bays: 1                      # assumption: one car at a time
   slot_granularity_min: 30     # start times on :00 / :30
 
