@@ -1,4 +1,7 @@
 import re
+from datetime import datetime
+
+import config
 
 
 def normalize_phone(raw):
@@ -8,7 +11,7 @@ def normalize_phone(raw):
     raw = str(raw).strip()
     digits = re.sub(r"\D", "", raw)
 
-    if raw.startswith("+"):                      # explicit country code
+    if raw.startswith("+"):                      
         return "+" + digits if 8 <= len(digits) <= 15 else None
 
     if digits.startswith("0091"):                # 0091 98765 43210
@@ -21,6 +24,7 @@ def normalize_phone(raw):
     if len(digits) == 10 and digits[0] in "6789":         # Indian mobile
         return "+91" + digits
     return None
+
 
 def strip_think(text):
     text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.DOTALL)
