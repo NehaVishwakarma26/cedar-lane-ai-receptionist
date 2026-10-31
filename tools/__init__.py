@@ -1,4 +1,4 @@
-"""Public API of the tools package: TOOLS (schemas for Ollama) and execute()."""
+"""Public tool API: shared function schemas and the allowlisted dispatcher."""
 from .dispatcher import execute
 from .schemas import TOOLS
 

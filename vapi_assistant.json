@@ -1,0 +1,355 @@
+{
+  "name": "Cedar Lane Auto Detailing Voice Receptionist",
+  "firstMessage": "Thanks for calling Cedar Lane Auto Detailing. How can I help you today?",
+  "model": {
+    "provider": "google",
+    "model": "gemini-3.5-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are the phone receptionist for Cedar Lane Auto Detailing, an auto detailing shop.\nSpeak naturally and briefly, one question at a time. Never use markdown or read technical IDs aloud.\n\nCurrent local date/time: {{ \"now\" | date: \"%A, %B %d, %Y %I:%M %p\", \"Asia/Kolkata\" }}.\nThe shop timezone is Asia/Kolkata. Convert relative dates into the correct local calendar date.\nServices: Exterior Wash, Interior Detail, Interior Detail & Wash, Full Detail, Ceramic Coating.\nThe inbound caller ID is {{customer.number}}. Use it as the caller's phone number when present; otherwise ask for a reachable number.\n\nUse tools for every price, business hour, policy, prep requirement, vehicle eligibility, and availability answer.\nFor booking, collect the service, date, time, customer name, and phone if caller ID is unavailable. Check availability first.\nRead the exact appointment details back and wait for a clear yes before calling book_appointment.\nDo not claim a booking, cancellation, or reschedule succeeded unless the corresponding tool result confirms it.\nFor rescheduling or cancellation, look up the caller's appointment first and confirm the requested change before acting.\nFor lateness, identify the appointment before recording it.\nIf a caller disputes a charge, asks for a refund or a human, reports damage, or needs unsupported help, use handoff_to_human.\nBe honest that a handoff is recorded for staff review and is not automatically sent to an employee.\nAfter resolving the request, ask whether the caller needs anything else."
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "check_availability",
+          "description": "Check whether a time is open, or list open start times for a day. ALWAYS use this before telling the caller a slot is open or full. If time is given, says AVAILABLE or NOT AVAILABLE and nearby alternatives.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "service": {
+                "type": "string",
+                "enum": [
+                  "exterior_wash",
+                  "interior_detail",
+                  "interior_wash",
+                  "full_detail",
+                  "ceramic_coating"
+                ],
+                "description": "Service key."
+              },
+              "date": {
+                "type": "string",
+                "description": "Date as YYYY-MM-DD (use the calendar in the system prompt)."
+              },
+              "time": {
+                "type": "string",
+                "description": "Optional specific time to check."
+              }
+            },
+            "required": [
+              "service",
+              "date"
+            ]
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "One moment while I check that for you."
+          }
+        ]
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "book_appointment",
+          "description": "Create a booking. ONLY call after you have name, phone, service, date, time AND the caller confirmed the details you read back.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string",
+                "description": "Caller's phone number as they said it. Omit if already known."
+              },
+              "service": {
+                "type": "string",
+                "enum": [
+                  "exterior_wash",
+                  "interior_detail",
+                  "interior_wash",
+                  "full_detail",
+                  "ceramic_coating"
+                ],
+                "description": "Service key."
+              },
+              "date": {
+                "type": "string",
+                "description": "Date as YYYY-MM-DD (use the calendar in the system prompt)."
+              },
+              "time": {
+                "type": "string",
+                "description": "Time like 15:30 or 3:30 PM."
+              },
+              "vehicle": {
+                "type": "string",
+                "description": "e.g. 2019 Honda Civic (optional)."
+              }
+            },
+            "required": [
+              "name",
+              "service",
+              "date",
+              "time"
+            ]
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "One moment while I check that for you."
+          }
+        ]
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "find_appointments",
+          "description": "List the caller's upcoming appointments (with event_id). Use before rescheduling, cancelling, or noting lateness.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "phone": {
+                "type": "string",
+                "description": "Caller's phone number as they said it. Omit if already known."
+              }
+            },
+            "required": []
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "One moment while I check that for you."
+          }
+        ]
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "reschedule",
+          "description": "Move one of the caller's appointments to a new date/time. Needs event_id from find_appointments and caller confirmation.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string",
+                "description": "Caller's phone number as they said it. Omit if already known."
+              },
+              "new_date": {
+                "type": "string",
+                "description": "Date as YYYY-MM-DD (use the calendar in the system prompt)."
+              },
+              "new_time": {
+                "type": "string",
+                "description": "Time like 15:30 or 3:30 PM."
+              }
+            },
+            "required": [
+              "event_id",
+              "new_date",
+              "new_time"
+            ]
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "One moment while I check that for you."
+          }
+        ]
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "cancel",
+          "description": "Cancel one of the caller's appointments. Needs event_id and caller confirmation.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string",
+                "description": "Caller's phone number as they said it. Omit if already known."
+              }
+            },
+            "required": [
+              "event_id"
+            ]
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "One moment while I check that for you."
+          }
+        ]
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "note_running_late",
+          "description": "Record that the caller is running late for today's appointment. Follow the tool's instruction in its reply.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "minutes": {
+                "type": "integer",
+                "description": "How many minutes late."
+              },
+              "event_id": {
+                "type": "string",
+                "description": "Optional."
+              },
+              "phone": {
+                "type": "string",
+                "description": "Caller's phone number as they said it. Omit if already known."
+              }
+            },
+            "required": [
+              "minutes"
+            ]
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "One moment while I check that for you."
+          }
+        ]
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "get_info",
+          "description": "Get official pricing, hours, prep requirements, vehicle rules or policies. Never state these from memory.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "enum": [
+                  "pricing",
+                  "hours",
+                  "prep",
+                  "vehicles",
+                  "policies"
+                ]
+              }
+            },
+            "required": [
+              "topic"
+            ]
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "One moment while I check that for you."
+          }
+        ]
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "check_vehicle",
+          "description": "Check whether we detail a vehicle type. Pass the body type (sedan, suv, truck, motorcycle, rv, boat...). If you are confident which body type a make/model is, pass that type; otherwise pass what the caller said.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "vehicle_type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "vehicle_type"
+            ]
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "One moment while I check that for you."
+          }
+        ]
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "handoff_to_human",
+          "description": "Pass the caller to a human. Use for charge disputes, refunds, damage claims, angry callers, questions the tools can't answer, unsure vehicles, unverifiable appointments, or if the caller asks for a person.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "type": "string",
+                "description": "One short sentence."
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "complaint",
+                  "other",
+                  "vehicle_check",
+                  "reschedule",
+                  "cancel"
+                ]
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "One moment while I check that for you."
+          }
+        ]
+      }
+    ],
+    "maxTokens": 220
+  },
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-3",
+    "language": "en"
+  },
+  "voice": {
+    "provider": "vapi",
+    "voiceId": "Elliot",
+    "version": 2,
+    "language": "en"
+  },
+  "server": {
+    "url": "https://nonfluidic-rueben-hammiest.ngrok-free.dev/vapi/webhook",
+    "credentialId": "your-vapi-credential-id"
+  },
+  "serverMessages": [
+    "tool-calls",
+    "end-of-call-report"
+  ],
+  "startSpeakingPlan": {
+    "waitSeconds": 0.4,
+    "smartEndpointingPlan": {
+      "provider": "livekit",
+      "waitFunction": "2000 / (1 + exp(-10 * (x - 0.5)))"
+    }
+  },
+  "stopSpeakingPlan": {
+    "numWords": 0,
+    "voiceSeconds": 0.2,
+    "backoffSeconds": 0.8
+  }
+}

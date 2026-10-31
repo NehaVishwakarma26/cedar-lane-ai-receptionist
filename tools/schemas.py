@@ -1,8 +1,8 @@
-"""JSON schemas Ollama shows the model. Descriptions tell it WHEN to use each tool."""
+"""Shared allowlisted function schemas for Gemini and Vapi tool calling."""
 from config import SERVICES
 
 
-# Builds one tool definition in the format Ollama expects.
+# Build a provider-neutral function schema consumed by both model integrations.
 def _tool_schema(name, description, properties, required):
     return {"type": "function", "function": {
         "name": name, "description": description,

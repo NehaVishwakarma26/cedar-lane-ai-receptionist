@@ -1,8 +1,11 @@
-import uvicorn
+import hmac
 import logging
+import uvicorn
 
 import agent
-from fastapi import FastAPI, HTTPException, Path
+import config
+import vapi_integration
+from fastapi import FastAPI, Header, HTTPException, Path
 from pydantic import BaseModel, Field
 
 app = FastAPI()
@@ -62,6 +65,23 @@ def end_chat_session(session_id: str = Path(min_length=1, max_length=200)):
             detail="Could not save this conversation to Google Sheets. Please retry.",
         )
     return SessionEndResponse(session_id=session_id, logged=True)
+
+
+@app.post("/vapi/webhook")
+def vapi_webhook(payload: dict, authorization: str | None = Header(default=None)):
+    """Receive Vapi function calls and end-of-call reports."""
+    if not config.VAPI_WEBHOOK_TOKEN:
+        raise HTTPException(status_code=503, detail="Vapi webhook authentication is not configured.")
+    expected = f"Bearer {config.VAPI_WEBHOOK_TOKEN}"
+    if not authorization or not hmac.compare_digest(authorization, expected):
+        raise HTTPException(status_code=401, detail="Unauthorized webhook request.")
+    try:
+        return vapi_integration.handle_webhook(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        log.exception("Vapi webhook failed")
+        raise HTTPException(status_code=500, detail="The Vapi webhook could not be processed.") from exc
 
 def main():
     print("Hello from procindex-assignment!")

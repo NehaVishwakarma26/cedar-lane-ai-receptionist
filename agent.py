@@ -40,7 +40,7 @@ def _get_gemini_client():
 
 
 def _gemini_tools():
-    """Translate the existing allowlisted Ollama schemas to Gemini declarations."""
+    """Translate shared allowlisted function schemas to Gemini declarations."""
     declarations = []
     for tool in TOOLS:
         function = tool["function"]

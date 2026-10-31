@@ -27,3 +27,4 @@ class Session:
     state: CallState = field(default_factory=CallState)
     contact_saved: bool = False
     call_log_saved: bool = False
+    vapi_tool_results: dict = field(default_factory=dict)

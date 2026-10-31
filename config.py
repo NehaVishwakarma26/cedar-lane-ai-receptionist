@@ -27,6 +27,9 @@ CALENDAR_ID = os.getenv("CALENDAR_ID", "primary")
 SHEET_ID = os.getenv("SHEET_ID", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+VAPI_WEBHOOK_TOKEN = os.getenv("VAPI_WEBHOOK_TOKEN", "")
+VAPI_SERVER_URL = os.getenv("VAPI_SERVER_URL", "")
+VAPI_CREDENTIAL_ID = os.getenv("VAPI_CREDENTIAL_ID", "")
 
 
 def _validate():
