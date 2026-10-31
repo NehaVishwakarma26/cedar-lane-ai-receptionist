@@ -1,0 +1,38 @@
+shop:
+  name: Cedar Lane Auto Detailing
+  timezone: America/Los_Angeles
+  phone: "+14155550100"
+  bays: 1                      # assumption: one car at a time
+  slot_granularity_min: 30     # start times on :00 / :30
+
+hours:                          # 24h local time; omit a day = closed
+  mon: ["08:00", "17:00"]
+  tue: ["08:00", "17:00"]
+  wed: ["08:00", "17:00"]
+  thu: ["08:00", "17:00"]
+  fri: ["08:00", "17:00"]
+  sat: ["09:00", "15:00"]
+
+services:
+  exterior_wash:     { label: "Exterior Wash",            duration_min: 60,  price: 60  }
+  interior_detail:   { label: "Interior Detail",          duration_min: 120, price: 150 }
+  interior_wash:     { label: "Interior Detail & Wash",   duration_min: 150, price: 190 }
+  full_detail:       { label: "Full Detail",              duration_min: 240, price: 300 }
+  ceramic_coating:   { label: "Ceramic Coating",          duration_min: 480, price: 700 }
+
+vehicles:
+  supported: [sedan, coupe, suv, truck, minivan, hatchback]
+  surcharge:  { suv: 20, truck: 30, minivan: 20 }
+  unsupported: [motorcycle, rv, boat, semi, bus]   # hand off if unsure
+
+prep:
+  - "Remove all personal items and trash from the car."
+  - "Remove child seats."
+  - "Tell us about pet hair or heavy stains in advance."
+  - "Arrive on time; we hold the bay for 15 minutes."
+
+policies:
+  late_grace_min: 15
+  cancel_notice_hours: 24
+  min_booking_notice_hours: 2
+  max_days_ahead: 60
