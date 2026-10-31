@@ -103,7 +103,7 @@ def delete_event(event_id):
 
 # list events by extra private properties
 def list_by_private_prop(key, value, from_dt=None):
-    kw = {"privateExtraProperty": f"{key}={value}"}
+    kw = {"privateExtendedProperty": f"{key}={value}"}
     if from_dt is not None:
         kw["timeMin"] = from_dt.isoformat()
     return [e for e in _list(**kw) if e.get("status") != "cancelled"]
